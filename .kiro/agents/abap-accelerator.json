@@ -32,5 +32,5 @@
   ],
   "hooks": {},
   "toolsSettings": {},
-  "model": "claude-opus-4.5"
+  "model": "auto"
 }
