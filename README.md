@@ -57,6 +57,8 @@ Kiro CLI agents connect to SAP through a Python-based MCP server running locally
 
 These agents connect to SAP through the [SAP ABAP Accelerator](https://github.com/aws-solutions-library-samples/guidance-for-deploying-sap-abap-accelerator-for-amazon-q-developer) MCP server. Verify the following before setup.
 
+> No AWS account is required. Everything in this repo runs locally: Kiro CLI, the MCP server, and report generation.
+
 ### 3.1 System requirements
 
 | Requirement | Verification | Install |
@@ -64,7 +66,25 @@ These agents connect to SAP through the [SAP ABAP Accelerator](https://github.co
 | Python 3.11+ | `python3 --version` | Your package manager |
 | Kiro-CLI | `kiro-cli --version` | [Kiro CLI](https://kiro.dev/docs/cli/) |
 
-**AI model:** All agents are configured to use `claude-opus-4.5`. You can change this by editing the `"model"` field in each agent config file under `.kiro/agents/*.json`. See [Kiro CLI docs](https://kiro.dev/docs/cli/) for supported model values.
+**AI model (model-agnostic):** All agents are configured to use `"model": "auto"`, allowing you to select any Kiro-supported LLM at runtime via the `--model` CLI flag. No configuration file edits needed. See [KIRO_MODEL_AGNOSTIC.md](KIRO_MODEL_AGNOSTIC.md) for detailed model selection guide, examples, and cost/performance comparisons.
+
+**Supported models:**
+- Claude (Opus, Sonnet, Haiku)
+- GPT-4 (OpenAI)
+- Gemini (Google)
+- Custom local models
+
+**Example:**
+```bash
+# Use Claude Opus
+kiro-cli chat --agent sap-atc-checker --model claude-opus-4.5 --no-interactive "Check package ZFLIGHT"
+
+# Use Claude Haiku (fast & budget-friendly)
+kiro-cli chat --agent sap-atc-checker --model claude-haiku-3.5 --no-interactive "Check package ZFLIGHT"
+
+# Let Kiro decide
+kiro-cli chat --agent sap-atc-checker --model auto --no-interactive "Check package ZFLIGHT"
+```
 
 ### 3.2 SAP system requirements
 
@@ -103,6 +123,17 @@ python3.11 -m venv venv              # Create isolated Python environment
 venv/bin/pip install -r requirements.txt  # Install MCP server dependencies
 cd ..  # Return to clean-core directory
 ```
+
+If your MCP server is already cloned elsewhere (or your fork uses a different folder layout), set these optional overrides in `mcp/sap.env`:
+
+```bash
+MCP_SERVER_DIR=/absolute/path/to/your/mcp-server-repo
+MCP_SERVER_PACKAGE_DIR=/absolute/path/to/your/mcp-server-repo/src/aws_abap_accelerator
+MCP_VENV_PYTHON=/absolute/path/to/your/mcp-server-repo/venv/bin/python
+MCP_SERVER_URL=http://localhost:8001/mcp
+```
+
+`./mcp/mcp-launcher.sh` and `./check-setup.sh` now use these values when present.
 
 ### 4.2 Configure SAP connection
 
@@ -175,23 +206,68 @@ Start any agent with `kiro-cli --agent <name>` and type your prompt:
 
 > **Recommended order:** Run `sap-atc-checker` first. Its output in `reports/atc/` is required by `business-function-mapper` and useful context for other agents. For `sap-unused-code-discovery`, export SUSG data from SAP first -- SAP recommends collecting usage data for 6-18 months before export to improve accuracy (see [Usage Data Collection](https://help.sap.com/docs/ABAP_PLATFORM_NEW/ba879a6e2ea04d9bb94c7ccd7cdac446/ca200f7002394c809d90873e19e5ac84.html)).
 
+**Model-agnostic execution:** All agents support the `--model` flag to select any Kiro-supported LLM:
+
+```bash
+# Run with Claude Opus (high performance)
+kiro-cli chat --agent sap-atc-checker --model claude-opus-4.5 --no-interactive "Check package ZFLIGHT"
+
+# Run with Claude Sonnet (balanced)
+kiro-cli chat --agent sap-atc-checker --model claude-sonnet-4 --no-interactive "Check package ZFLIGHT"
+
+# Run with Claude Haiku (fast & budget-friendly)
+kiro-cli chat --agent sap-atc-checker --model claude-haiku-3.5 --no-interactive "Check package ZFLIGHT"
+
+# Let Kiro decide (auto)
+kiro-cli chat --agent sap-atc-checker --model auto --no-interactive "Check package ZFLIGHT"
+```
+
+See [KIRO_MODEL_AGNOSTIC.md](KIRO_MODEL_AGNOSTIC.md) for comprehensive model selection guide, cost/performance comparisons, and advanced usage patterns.
+
 ### 5.3 Non-interactive mode
 
 For automation and scripting, pass the prompt directly:
 
 ```bash
+# Default model (auto)
 kiro-cli chat --trust-all-tools --agent sap-atc-checker --no-interactive "Check package ZFLIGHT"
+
+# Specific model
+kiro-cli chat --trust-all-tools --agent sap-atc-checker --model claude-opus-4.5 --no-interactive "Check package ZFLIGHT"
+
+# Run in background
+kiro-cli chat --trust-all-tools --agent sap-atc-checker --model claude-opus-4.5 --no-interactive "Check package ZFLIGHT" &
 ```
 
-Append `&` to run in the background:
+**Model examples:**
+- `--model claude-opus-4.5` — Claude Opus (high performance)
+- `--model claude-sonnet-4` — Claude Sonnet (balanced)
+- `--model claude-haiku-3.5` — Claude Haiku (fast & budget)
+- `--model gpt-4` — GPT-4 (OpenAI)
+- `--model gemini-2.0-pro-exp` — Gemini (Google)
+- `--model auto` — Let Kiro decide
 
-```bash
-kiro-cli chat --trust-all-tools --agent sap-atc-checker --no-interactive "Check package ZFLIGHT" &
-```
+For all supported models, see [KIRO_MODEL_AGNOSTIC.md](KIRO_MODEL_AGNOSTIC.md).
 
 **Resume interrupted sessions:** Run the same command again. Agents auto-detect `progress.json` and continue where they left off.
 
-### 5.4 Output
+### 5.4 Baseline Results
+
+Example baseline results from running agents on the `TESTCDS2ENTITY` test package are available in the `docs/baselines/TESTCDS2ENTITY/` directory:
+
+| Baseline | Location | Description |
+|----------|----------|-------------|
+| ATC Check Results | [docs/baselines/TESTCDS2ENTITY/atc/](docs/baselines/TESTCDS2ENTITY/atc/) | Clean Core compliance findings from sap-atc-checker |
+| Code Documentation | [docs/baselines/TESTCDS2ENTITY/docs/](docs/baselines/TESTCDS2ENTITY/docs/) | Generated ABAP source documentation from sap-custom-code-documenter |
+
+**Key files:**
+- `SUMMARY.md` — Overview of findings and classifications
+- `ZCL_PP_ORDER_UPD_atc.md` — Object-level Clean Core findings
+- `ZCL_PP_ORDER_UPD.md` — Technical documentation for each object
+
+These baselines demonstrate the output format and can be used as templates for your own package analysis.
+
+### 5.5 Output
 
 Agents write reports to the `reports/` directory, organized by type and package:
 
@@ -204,10 +280,11 @@ Agents write reports to the `reports/` directory, organized by type and package:
 
 Each directory contains individual object reports and a `SUMMARY.md` with an overview.
 
-### 5.5 Working with results
+### 5.6 Working with results
 
 - **Identify non-compliance patterns**: Look across reports for recurring findings -- the same internal API used in multiple objects, common Level D violations, or groups of objects that need the same fix. Fixing by pattern is faster than going object by object.
 - **Use reports as a knowledge base**: Feed generated reports into a Gen AI assistant to query your findings -- "which objects depend on CL_GUI_ALV_GRID?", "what are the most common Level D findings?", "draft a remediation plan for these objects."
+- **Compare models**: Run the same package with different models using the `--model` flag to compare output quality and speed. See [KIRO_MODEL_AGNOSTIC.md](KIRO_MODEL_AGNOSTIC.md) for cost/performance guidance.
 
 ---
 
@@ -224,6 +301,8 @@ Common issues and how to resolve them.
 | Agent not found | Run from `clean-core` directory |
 | Context overflow | Restart agent, say "Resume" |
 | ATC variant error | Verify a Clean Core variant exists in SAP (see [section 3.2](#32-sap-system-requirements)) |
+| Model not found | Run `kiro-cli models list` to see available models |
+| Different results between models | Expected -- different LLMs analyze code differently. Use Opus for production audits; Haiku for quick scans. See [KIRO_MODEL_AGNOSTIC.md](KIRO_MODEL_AGNOSTIC.md) for details |
 
 **Debug SAP connection:**
 ```bash
@@ -233,6 +312,12 @@ Common issues and how to resolve them.
 # Then test connection
 ./check-setup.sh --test-connection
 curl -v https://<SAP_HOST>/sap/bc/adt/discovery    # use http:// if SAP_SECURE=false
+```
+
+**Verify model availability:**
+```bash
+kiro-cli models list
+kiro-cli chat --agent sap-atc-checker --model claude-opus-4.5 --no-interactive "Check package ZTEST"
 ```
 
 ---
@@ -287,6 +372,8 @@ Detailed guides and external references.
 
 ### 8.1 Documentation
 
+- [KIRO_MODEL_AGNOSTIC.md](KIRO_MODEL_AGNOSTIC.md) - **Model selection guide, LLM comparison, cost/performance analysis, advanced usage patterns** ⭐
+- [Baseline Results](docs/baselines/TESTCDS2ENTITY/) - Example ATC and documentation output from TESTCDS2ENTITY package
 - [Agent Guide](docs/agent-guide.md) - Detailed agent capabilities, commands, and usage
 - [Enhancement Guide](docs/enhancement-guide.md) - Ideas for extending and customizing agents
 - [Security Model](docs/SECURITY.md) - Agent permissions and credential handling

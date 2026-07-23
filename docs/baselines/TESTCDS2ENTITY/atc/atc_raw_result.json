@@ -1,0 +1,16 @@
+{
+  "objects": [
+    {
+      "name": "TESTCDS2ENTITY",
+      "type": "DEVC",
+      "packageName": "TESTCDS2ENTITY",
+      "findings": []
+    },
+    {
+      "name": "ZCL_PP_ORDER_UPD",
+      "type": "CLAS",
+      "packageName": "TESTCDS2ENTITY",
+      "findings": []
+    }
+  ]
+}
