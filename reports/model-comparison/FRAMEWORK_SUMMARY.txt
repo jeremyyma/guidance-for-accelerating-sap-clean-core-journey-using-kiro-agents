@@ -1,0 +1,351 @@
+================================================================================
+  KIRO MODEL COMPARISON TESTING FRAMEWORK - SETUP COMPLETE
+================================================================================
+
+⚠️  DISCLAIMER: PERSONAL EXPERIMENTATION ONLY
+────────────────────────────────────────────────────────────────────────────────
+This framework and all testing results are provided "as-is" without any warranty,
+guarantee, or liability of any kind. This is PERSONAL EXPERIMENTATION ONLY and is
+NOT officially supported by SAP, AWS, Anthropic, OpenAI, or Google.
+
+DO NOT use these results for production decisions without independent, comprehensive
+testing and validation in your own environment. You assume all responsibility for any
+consequences of using this framework or its results.
+
+LIMITED SCOPE: These tests cover only the TESTCDS2ENTITY package on 2026-07-27.
+Results may not generalize to other packages, configurations, or environments.
+
+NO WARRANTY: All information provided as-is. See COMPARISON_SUMMARY.md for full terms.
+────────────────────────────────────────────────────────────────────────────────
+
+Created: 2026-07-27
+Purpose: Test and compare Kiro agents across Claude, GPT-4, and Gemini models
+
+================================================================================
+DIRECTORY STRUCTURE
+================================================================================
+
+reports/model-comparison/
+├── README.md                    # Comprehensive framework documentation
+├── QUICKSTART.md               # Quick start guide and workflow
+├── FRAMEWORK_SUMMARY.txt       # This file
+├── COMPARISON_SUMMARY.md       # Results template (fill after testing)
+│
+├── EXECUTABLE TEST SCRIPTS (all ready to run):
+├── run_all_tests.sh           # Master runner for all 3 models
+├── claude_tests.sh            # Claude Opus tests only
+├── gpt4_tests.sh              # GPT-4 tests only
+├── gemini_tests.sh            # Gemini tests only
+│
+├── ANALYSIS SCRIPTS:
+├── analyze_results.py         # Auto-generates comparison reports
+│
+├── RESULTS DIRECTORIES (created on-demand during tests):
+├── claude/
+│   ├── atc/                   # ATC checker results
+│   ├── docs/                  # Code documenter results
+│   ├── unused/                # Unused code discovery results
+│   └── TEST_*.log             # Test execution log
+├── gpt4/
+│   ├── atc/
+│   ├── docs/
+│   ├── unused/
+│   └── TEST_*.log
+└── gemini/
+    ├── atc/
+    ├── docs/
+    ├── unused/
+    └── TEST_*.log
+
+================================================================================
+HOW TO RUN TESTS
+================================================================================
+
+OPTION 1: Run All Tests at Once (Recommended)
+────────────────────────────────────────────
+cd /Users/i817989/git/guidance-for-accelerating-sap-clean-core-journey-using-kiro-agents/reports/model-comparison
+bash run_all_tests.sh
+
+Duration: ~30-60 minutes (depends on SAP system speed)
+Output: Results in claude/, gpt4/, gemini/ directories + logs
+
+OPTION 2: Run Individual Model Tests
+────────────────────────────────────
+bash claude_tests.sh      # Test Claude Opus only (~10-15 min)
+bash gpt4_tests.sh        # Test GPT-4 only (~10-15 min)
+bash gemini_tests.sh      # Test Gemini only (~10-15 min)
+
+Each model runs 3 agents:
+  1. ATC Compliance Checker
+  2. Code Documenter  
+  3. Unused Code Discovery
+
+================================================================================
+TEST PACKAGE
+================================================================================
+
+Package Under Test: TESTCDS2ENTITY
+  - Consistent baseline for model comparison
+  - Same package tested with all 3 models
+  - Results comparable across models
+
+To change package, edit the model test scripts and update:
+  PACKAGE="TESTCDS2ENTITY"  → Change to your package
+
+================================================================================
+PREREQUISITES
+================================================================================
+
+Before running tests, ensure:
+
+1. SAP SYSTEM
+   - SAP system is accessible
+   - MCP server is running: ./mcp/mcp-launcher.sh &
+   - sap.env is configured with connection details
+
+2. API KEYS (environment variables)
+   - export ANTHROPIC_API_KEY="sk-ant-..."    (for Claude)
+   - export OPENAI_API_KEY="sk-..."           (for GPT-4)
+   - export GEMINI_API_KEY="..."              (for Gemini)
+
+3. KIRO CLI
+   - kiro-cli --version should return 2.14.x or higher
+   - Verify: which kiro-cli
+
+================================================================================
+EVALUATING RESULTS
+================================================================================
+
+After tests complete, evaluate output quality using:
+
+1. Read Individual Results
+   - ls -la reports/model-comparison/claude/atc/
+   - cat reports/model-comparison/claude/atc/SUMMARY.md
+   - Compare across models
+
+2. Fill in Comparison Summary
+   - vim reports/model-comparison/COMPARISON_SUMMARY.md
+   - Rate each model on quality, accuracy, performance
+   - Document strengths/weaknesses
+
+3. Choose Winner per Agent
+   - ATC: Which model found most violations accurately?
+   - Docs: Which model produced clearest documentation?
+   - Unused: Which model best detected dead code?
+
+Quality Criteria by Agent:
+  ✓ ATC: Accuracy, completeness, actionable recommendations
+  ✓ Docs: Coverage, technical correctness, business context
+  ✓ Unused: Detection accuracy, false positive rate, safety
+
+================================================================================
+ANALYSIS & COMPARISON
+================================================================================
+
+Automated Analysis:
+  python3 analyze_results.py
+
+Generates:
+  - Comparison metrics from result files
+  - Quality scores based on findings
+  - Summary statistics
+  - Updates COMPARISON_SUMMARY.md
+
+Manual Comparison:
+  1. Review finding counts in each model/agent directory
+  2. Compare execution times from test logs
+  3. Evaluate output clarity and usefulness
+  4. Check token usage / API costs
+
+================================================================================
+STORAGE & NAMING CONVENTION
+================================================================================
+
+Results automatically organized by:
+  - Model name (claude, gpt4, gemini)
+  - Agent type (atc, docs, unused)
+  - Timestamp (TEST_YYYYMMDD_HHMMSS.log)
+
+Example file structure after runs:
+  reports/model-comparison/
+  └── claude/
+      ├── TEST_20260727_093045.log
+      ├── atc/
+      │   ├── SUMMARY.md
+      │   ├── TESTCDS2ENTITY_atc.md
+      │   └── *.json
+      ├── docs/
+      │   ├── SUMMARY.md
+      │   └── ZCL_*.md
+      └── unused/
+          ├── SUMMARY.md
+          └── [findings].md
+
+================================================================================
+EXPECTED OUTPUTS
+================================================================================
+
+Each agent produces:
+  
+  ATC Checker:
+    - SUMMARY.md (executive findings)
+    - [Package]_atc.md (package-level results)
+    - [Class]_atc.md (object-level findings)
+    - Raw JSON from SAP API
+
+  Code Documenter:
+    - SUMMARY.md (documentation overview)
+    - [Class].md (technical documentation)
+    - [Class]_BUSINESS.md (business documentation)
+
+  Unused Code Discovery:
+    - SUMMARY.md (findings overview)
+    - [Class]_unused.md (dead code per object)
+    - Removal safety assessments
+
+================================================================================
+WORKFLOW CHECKLIST
+================================================================================
+
+Before Testing:
+  ☐ Configure SAP connection (mcp/sap.env)
+  ☐ Set API keys for all 3 models
+  ☐ Verify Kiro CLI is installed
+  ☐ Start MCP server: ./mcp/mcp-launcher.sh &
+  ☐ Test SAP connection: ./check-setup.sh --test-connection
+
+During Testing:
+  ☐ Run master test: bash run_all_tests.sh
+  ☐ Monitor progress in master log
+  ☐ Note any errors or failures
+
+After Testing:
+  ☐ Review results in claude/, gpt4/, gemini/ directories
+  ☐ Compare outputs for each agent
+  ☐ Fill in COMPARISON_SUMMARY.md with quality scores
+  ☐ Document winner for each use case
+  ☐ Calculate cost per model
+  ☐ Select recommended model(s)
+  ☐ Commit results: git add reports/model-comparison/
+  ☐ Push to repository for team reference
+
+================================================================================
+INTERPRETING RESULTS
+================================================================================
+
+Quality Scoring Guide:
+
+  ATC Accuracy (9-10):
+    - All violations correctly identified
+    - No false positives
+    - Comprehensive coverage across package
+
+  Documentation Clarity (9-10):
+    - All methods documented completely
+    - Clear business context
+    - Code examples provided
+    - Easy to understand
+
+  Dead Code Detection (8-10):
+    - Finds actual unused code
+    - Minimal false positives
+    - Safety assessment provided
+    - Easy to remediate
+
+  Performance:
+    - Execution time < 5 minutes = Excellent
+    - 5-15 minutes = Good
+    - > 15 minutes = Consider model choice
+
+Cost vs Quality Analysis:
+  - If cost difference < 20%, choose higher quality
+  - If cost difference > 50%, consider trade-off
+  - For production, prioritize quality
+  - For development, can use cost-effective model
+
+================================================================================
+COST COMPARISON
+================================================================================
+
+Approximate costs (2026 pricing):
+  - Claude Opus: $0.15-0.30 per full test suite (3 agents)
+  - GPT-4: $0.10-0.25 per full test suite
+  - Gemini: $0.05-0.15 per full test suite
+
+Annual savings if testing 100 packages:
+  - Using cheapest model: ~$500-1000/year
+  - Using best quality: ~$1500-3000/year
+  - Depends on package size and complexity
+
+================================================================================
+DOCUMENTATION REFERENCES
+================================================================================
+
+For more information, see:
+  - KIRO_MODEL_AGNOSTIC.md    (comprehensive model selection guide)
+  - QUICKSTART.md              (quick reference for testing)
+  - README.md                  (framework documentation)
+  - docs/baselines/            (example outputs for reference)
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+1. IMMEDIATE:
+   ✓ All test infrastructure is ready
+   ✓ Scripts are executable
+   ✓ Templates are in place
+
+2. WHEN READY TO TEST:
+   ✓ bash run_all_tests.sh
+   ✓ Wait for completion
+   ✓ Review results
+
+3. AFTER TESTING:
+   ✓ Fill in COMPARISON_SUMMARY.md
+   ✓ Commit results to git
+   ✓ Share with team
+
+4. ONGOING:
+   ✓ Re-run tests quarterly
+   ✓ Track model performance over time
+   ✓ Update recommendations based on results
+
+================================================================================
+SUPPORT & TROUBLESHOOTING
+================================================================================
+
+Common Issues:
+
+1. "Model not found" error
+   → Verify API key is set: echo $ANTHROPIC_API_KEY
+   → If empty, set it: export ANTHROPIC_API_KEY="your-key"
+
+2. "SAP connection failed"
+   → Check SAP environment: cat mcp/sap.env
+   → Start MCP: ./mcp/mcp-launcher.sh &
+   → Test connection: curl https://<SAP_HOST>/sap/bc/adt/discovery
+
+3. Results not saving
+   → Check permissions: chmod 755 reports/model-comparison/
+   → Verify kiro_result/ directory exists
+   → Check disk space: df -h
+
+For more help, see QUICKSTART.md troubleshooting section.
+
+================================================================================
+FRAMEWORK READY FOR USE
+================================================================================
+
+Status: ✓ All components installed and configured
+Date Created: 2026-07-27
+Next Action: Run tests when SAP system is accessible
+
+To get started:
+  1. cd reports/model-comparison
+  2. Review QUICKSTART.md
+  3. bash run_all_tests.sh
+
+Questions? See README.md or QUICKSTART.md for detailed documentation.
+
+================================================================================
